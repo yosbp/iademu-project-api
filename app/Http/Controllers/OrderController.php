@@ -55,8 +55,10 @@ class OrderController extends Controller
             'order_id' => $order->id,
             'payment_method' => $request->payment_method,
             'payment_reference' => $request->payment_reference,
+            'payment_number' => $request->payment_number,
             'bank' => $request->bank,
             'account_number' => $request->account_number,
+            'description' => $request->description,
         ]);
 
         return response()->json([

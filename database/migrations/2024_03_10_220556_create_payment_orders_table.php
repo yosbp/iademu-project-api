@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignUuid('order_id')->constrained('orders');
             $table->string('payment_method');
             $table->string('payment_reference');
+            $table->string('payment_number');
             $table->string('bank');
             $table->string('account_number');
             $table->string('description')->nullable();

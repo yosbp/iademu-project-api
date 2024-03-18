@@ -16,6 +16,8 @@ class PaymentOrder extends Model
         'payment_reference',
         'bank',
         'account_number',
+        'description',
+        'payment_number'
     ];
 
     public function invoice()

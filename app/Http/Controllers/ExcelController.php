@@ -42,7 +42,9 @@ class ExcelController extends Controller
         $hoja->setCellValue('L15', $paymentOrder->account_number);
         $hoja->setCellValue('L18', $totalAmount);
         $hoja->setCellValue('B10', Str::upper($provider->name));
-        $hoja->setCellValue('B18', Str::upper(NumberToWords::transformNumber('es', $totalAmount)). ' BOLÍVARES EXACTOS');
+        $hoja->setCellValue('B18', Str::upper(NumberToWords::transformNumber('es', $totalAmount)) . ' BOLÍVARES EXACTOS');
+        $hoja->setCellValue('B30', Str::upper($paymentOrder->description));
+        $hoja->setCellValue('L4', 'ORDEN DE PAGO: ' . $paymentOrder->payment_number);
         $hoja->setCellValue('L5', 'FECHA DE LA ORDEN: ' . $order->created_at->format('d/m/Y'));
 
 
@@ -70,6 +72,7 @@ class ExcelController extends Controller
     {
 
         $order = Order::where('id', $id)->first();
+        $paymentOrder = $order->paymentOrder;
         $provider = $order->provider;
 
         // Get the total amount of each order
@@ -95,14 +98,22 @@ class ExcelController extends Controller
         $hoja->setCellValue('I10', Str::upper($provider->phone));
         $hoja->setCellValue('J12', $provider->rif);
         $hoja->setCellValue('J35', $order->exempt);
+        $hoja->setCellValue('J37', $order->tax);
+        $hoja->setCellValue('A36', $paymentOrder->description);
+        $hoja->setCellValue('B11', $order->created_at->format('d/m/Y'));
+        $hoja->setCellValue('G11', $order->created_at->format('d/m/Y'));
 
         // Set the order items starting from A15 to A32
         $row = 15;
         foreach ($order->orderItems as $item) {
-            $hoja->setCellValue('A' . $row, $item->item_name);
-            $hoja->setCellValue('H' . $row, $item->item_quantity);
-            $hoja->setCellValue('I' . $row, $item->item_amount);
-            $row++;
+            if ($row > 32) {
+                break;
+            } else {
+                $hoja->setCellValue('A' . $row, $item->item_name);
+                $hoja->setCellValue('H' . $row, $item->item_quantity);
+                $hoja->setCellValue('I' . $row, $item->item_amount);
+                $row++;
+            }
         }
 
         // Guardar el archivo en la nueva carpeta
@@ -124,5 +135,63 @@ class ExcelController extends Controller
         );
 
         /* return response()->json($provider, 200); */
+    }
+
+    public function requisitionAndCertifications(string $id)
+    {
+        $order = Order::where('id', $id)->first();
+        $provider = $order->provider;
+
+        // Get the full path of the template file
+        $archivoPlantilla = resource_path('templates/3-requisicion-y-certificacion.xlsx');
+
+        // Load the file
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+        $spreadsheet = $reader->load($archivoPlantilla);
+
+        // get the first sheet
+        $hoja = $spreadsheet->getActiveSheet();
+
+        // get the second sheet
+        $hoja2 = $spreadsheet->getSheet(1);
+
+        // Logic to change the data of certain cells in the Excel file first sheet
+        $hoja->setCellValue('B9', Str::upper($provider->name));
+        $hoja->setCellValue('B10', Str::upper($provider->address));
+        $hoja->setCellValue('I10', Str::upper($provider->phone));
+        $hoja->setCellValue('J12', $provider->rif);
+        $hoja->setCellValue('B11', $order->created_at->format('d/m/Y'));
+        $hoja->setCellValue('G11', $order->created_at->format('d/m/Y'));
+
+        // Set the order items starting from A15 to A32
+        $row = 15;
+        foreach ($order->orderItems as $item) {
+            if ($row > 32) {
+                break;
+            } else {
+                $hoja->setCellValue('A' . $row, $item->item_name);
+                $hoja->setCellValue('H' . $row, $item->item_quantity);
+                $hoja->setCellValue('I' . $row, $item->item_amount);
+                $row++;
+            }
+        }
+
+        // Guardar el archivo en la nueva carpeta
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+
+        // Devolver el archivo Excel
+        return response()->stream(
+            function () use ($writer) {
+                $writer->save('php://output');
+            },
+            200,
+            [
+                'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename=orden-de-pago.xlsx',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires'             => '0',
+                'Pragma'              => 'public',
+            ]
+        );
     }
 }

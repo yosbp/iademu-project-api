@@ -25,6 +25,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('orders', OrderController::class);
     Route::get('payment-order/{order}', [ExcelController::class, 'createPaymentOrder']);
     Route::get('buy-order/{order}', [ExcelController::class, 'createBuyOrder']);
+    Route::get('goods-and-services/{order}', [WordController::class, 'createGoodsAndServicesWord']);
+    Route::get('approve-memorandum/{order}', [WordController::class, 'approveMemorandum']);
     Route::get('dashboard', [DashboardController::class, 'dashboard']);
 });
 
